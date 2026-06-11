@@ -1,9 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useKeurGui, Tenant } from "@/context/KeurGuiContext";
 import Modal from "@/components/ui/Modal";
-import { Plus, Search, Trash2, Edit2, Calendar, Phone, Mail, MapPin } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Trash2,
+  Edit2,
+  Calendar,
+  Phone,
+  Mail,
+  MapPin,
+} from "lucide-react";
 
 export default function TenantsPage() {
   const { tenants, addTenant, updateTenant, deleteTenant } = useKeurGui();
@@ -11,6 +20,11 @@ export default function TenantsPage() {
   // Search and Filter States
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"table" | "card">("table");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+  const paginationButtonClass =
+    "rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50";
 
   // Modal States
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -38,14 +52,24 @@ export default function TenantsPage() {
     });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.rentAmount || !formData.propertyAddress) return;
+    if (
+      !formData.name ||
+      !formData.phone ||
+      !formData.rentAmount ||
+      !formData.propertyAddress
+    )
+      return;
 
     addTenant({
       name: formData.name,
@@ -62,7 +86,14 @@ export default function TenantsPage() {
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTenant || !formData.name || !formData.phone || !formData.rentAmount || !formData.propertyAddress) return;
+    if (
+      !selectedTenant ||
+      !formData.name ||
+      !formData.phone ||
+      !formData.rentAmount ||
+      !formData.propertyAddress
+    )
+      return;
 
     updateTenant(selectedTenant.id, {
       name: formData.name,
@@ -98,10 +129,24 @@ export default function TenantsPage() {
       tenant.phone.includes(searchTerm) ||
       tenant.propertyAddress.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || tenant.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" || tenant.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, tenants.length]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredTenants.length / ITEMS_PER_PAGE),
+  );
+  const paginatedTenants = filteredTenants.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
   // Render Status Badge
   const renderStatusBadge = (status: Tenant["status"]) => {
@@ -149,8 +194,8 @@ export default function TenantsPage() {
           />
         </div>
 
-        {/* Filters and Add Button */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Filters, view toggle and Add Button */}
+        <div className="flex flex-wrap items-center text-gray-600 gap-3">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -162,6 +207,23 @@ export default function TenantsPage() {
             <option value="reminded">Relancés</option>
             <option value="overdue">En retard</option>
           </select>
+
+          <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${viewMode === "table" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:bg-white hover:text-slate-900"}`}
+            >
+              Liste
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("card")}
+              className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${viewMode === "card" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:bg-white hover:text-slate-900"}`}
+            >
+              Cartes
+            </button>
+          </div>
 
           <button
             onClick={() => {
@@ -181,10 +243,14 @@ export default function TenantsPage() {
         {filteredTenants.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-slate-400">
             <Search className="h-12 w-12 text-slate-200 mb-3" />
-            <span className="text-xs font-semibold">Aucun locataire trouvé.</span>
-            <span className="text-[10px] text-slate-500 mt-1">Ajustez vos filtres ou ajoutez un nouveau profil.</span>
+            <span className="text-xs font-semibold">
+              Aucun locataire trouvé.
+            </span>
+            <span className="text-[10px] text-slate-500 mt-1">
+              Ajustez vos filtres ou ajoutez un nouveau profil.
+            </span>
           </div>
-        ) : (
+        ) : viewMode === "table" ? (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-xs font-medium text-slate-600">
               <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
@@ -198,9 +264,11 @@ export default function TenantsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filteredTenants.map((tenant) => (
-                  <tr key={tenant.id} className="hover:bg-slate-50/50 transition-colors">
-                    {/* Name & Contact */}
+                {paginatedTenants.map((tenant) => (
+                  <tr
+                    key={tenant.id}
+                    className="hover:bg-slate-50/50 transition-colors"
+                  >
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-900 text-sm leading-tight">
                         {tenant.name}
@@ -216,37 +284,31 @@ export default function TenantsPage() {
                         )}
                       </div>
                     </td>
-
-                    {/* Property Address */}
                     <td className="px-6 py-4">
-                      <div className="flex items-start gap-1 max-w-[200px]">
+                      <div className="flex items-start gap-1 max-w-50">
                         <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
                         <span className="font-medium text-slate-700 leading-normal">
                           {tenant.propertyAddress}
                         </span>
                       </div>
                     </td>
-
-                    {/* Rent Amount */}
                     <td className="px-6 py-4">
                       <span className="font-bold text-slate-900 text-sm">
                         {tenant.rentAmount.toLocaleString("fr-FR")}
                       </span>{" "}
-                      <span className="text-[10px] text-slate-400 font-semibold">FCFA</span>
+                      <span className="text-[10px] text-slate-400 font-semibold">
+                        FCFA
+                      </span>
                     </td>
-
-                    {/* Due Date */}
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-100 rounded-lg px-2 py-1">
                         <Calendar className="h-3.5 w-3.5 text-slate-400" />
                         <span>Le {tenant.dueDate} du mois</span>
                       </span>
                     </td>
-
-                    {/* Status Badge */}
-                    <td className="px-6 py-4">{renderStatusBadge(tenant.status)}</td>
-
-                    {/* Action buttons */}
+                    <td className="px-6 py-4">
+                      {renderStatusBadge(tenant.status)}
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
@@ -270,12 +332,120 @@ export default function TenantsPage() {
               </tbody>
             </table>
           </div>
+        ) : (
+          <div className="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
+            {paginatedTenants.map((tenant) => (
+              <div
+                key={tenant.id}
+                className="rounded-3xl border border-slate-100 bg-slate-50 p-5 shadow-sm transition hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                      Locataire
+                    </p>
+                    <h3 className="mt-2 text-base font-bold text-slate-900">
+                      {tenant.name}
+                    </h3>
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      {tenant.propertyAddress}
+                    </p>
+                  </div>
+                  <div>{renderStatusBadge(tenant.status)}</div>
+                </div>
+                <div className="mt-4 grid gap-3 text-[11px] text-slate-600">
+                  <div className="flex items-center justify-between rounded-2xl bg-white p-3 border border-slate-100">
+                    <span>Montant</span>
+                    <span className="font-semibold text-slate-900">
+                      {tenant.rentAmount.toLocaleString("fr-FR")} FCFA
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-white p-3 border border-slate-100">
+                    <span>Échéance</span>
+                    <span className="font-semibold text-slate-900">
+                      Le {tenant.dueDate}
+                    </span>
+                  </div>
+                  <div className="rounded-2xl bg-white p-3 border border-slate-100">
+                    <div className="text-[11px] text-slate-500">Contact</div>
+                    <div className="mt-2 text-slate-900 font-semibold">
+                      {tenant.phone}
+                    </div>
+                    {tenant.email && (
+                      <div className="mt-1 text-[11px] text-slate-500">
+                        {tenant.email}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => openEditModal(tenant)}
+                    className="rounded-2xl bg-white px-3 py-2 text-[11px] font-semibold text-blue-500 border border-slate-200 hover:bg-slate-100"
+                  >
+                    Modifier
+                  </button>
+                  <button
+                    onClick={() => deleteTenant(tenant.id)}
+                    className="rounded-2xl bg-white px-3 py-2 text-[11px] font-semibold text-rose-600 border border-rose-100 hover:bg-rose-50"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {filteredTenants.length > 0 && (
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4 sm:flex-row">
+            <div className="text-[11px] text-slate-500">
+              Affichage de{" "}
+              {Math.min(
+                filteredTenants.length,
+                (currentPage - 1) * ITEMS_PER_PAGE + 1,
+              )}{" "}
+              à {Math.min(filteredTenants.length, currentPage * ITEMS_PER_PAGE)}{" "}
+              sur {filteredTenants.length} locataire
+              {filteredTenants.length > 1 ? "s" : ""}.
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+                className={paginationButtonClass}
+              >
+                Précédent
+              </button>
+              <span className="text-[11px] text-slate-500">
+                Page {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentPage((page) => Math.min(totalPages, page + 1))
+                }
+                disabled={currentPage === totalPages}
+                className={paginationButtonClass}
+              >
+                Suivant
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
       {/* Add Tenant Modal */}
-      <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Ajouter un nouveau locataire">
-        <form onSubmit={handleAddSubmit} className="space-y-4 text-xs font-semibold text-slate-700">
+      <Modal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        title="Ajouter un nouveau locataire"
+      >
+        <form
+          onSubmit={handleAddSubmit}
+          className="space-y-4 text-xs font-semibold text-slate-700"
+        >
           <div>
             <label className="block text-slate-600 mb-1">Nom complet *</label>
             <input
@@ -291,7 +461,9 @@ export default function TenantsPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-slate-600 mb-1">Téléphone (Sénégal/UEMOA) *</label>
+              <label className="block text-slate-600 mb-1">
+                Téléphone (Sénégal/UEMOA) *
+              </label>
               <input
                 type="text"
                 name="phone"
@@ -303,7 +475,9 @@ export default function TenantsPage() {
               />
             </div>
             <div>
-              <label className="block text-slate-600 mb-1">Adresse e-mail</label>
+              <label className="block text-slate-600 mb-1">
+                Adresse e-mail
+              </label>
               <input
                 type="email"
                 name="email"
@@ -317,7 +491,9 @@ export default function TenantsPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-slate-600 mb-1">Montant Loyer (FCFA) *</label>
+              <label className="block text-slate-600 mb-1">
+                Montant Loyer (FCFA) *
+              </label>
               <input
                 type="number"
                 name="rentAmount"
@@ -329,7 +505,9 @@ export default function TenantsPage() {
               />
             </div>
             <div>
-              <label className="block text-slate-600 mb-1">Jour d&apos;échéance du mois *</label>
+              <label className="block text-slate-600 mb-1">
+                Jour d&apos;échéance du mois *
+              </label>
               <select
                 name="dueDate"
                 value={formData.dueDate}
@@ -346,7 +524,9 @@ export default function TenantsPage() {
           </div>
 
           <div>
-            <label className="block text-slate-600 mb-1">Adresse du bien / Logement *</label>
+            <label className="block text-slate-600 mb-1">
+              Adresse du bien / Logement *
+            </label>
             <textarea
               name="propertyAddress"
               required
@@ -377,8 +557,15 @@ export default function TenantsPage() {
       </Modal>
 
       {/* Edit Tenant Modal */}
-      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Modifier le locataire">
-        <form onSubmit={handleEditSubmit} className="space-y-4 text-xs font-semibold text-slate-700">
+      <Modal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        title="Modifier le locataire"
+      >
+        <form
+          onSubmit={handleEditSubmit}
+          className="space-y-4 text-xs font-semibold text-slate-700"
+        >
           <div>
             <label className="block text-slate-600 mb-1">Nom complet *</label>
             <input
@@ -404,7 +591,9 @@ export default function TenantsPage() {
               />
             </div>
             <div>
-              <label className="block text-slate-600 mb-1">Adresse e-mail</label>
+              <label className="block text-slate-600 mb-1">
+                Adresse e-mail
+              </label>
               <input
                 type="email"
                 name="email"
@@ -417,7 +606,9 @@ export default function TenantsPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-slate-600 mb-1">Montant Loyer (FCFA) *</label>
+              <label className="block text-slate-600 mb-1">
+                Montant Loyer (FCFA) *
+              </label>
               <input
                 type="number"
                 name="rentAmount"
@@ -428,7 +619,9 @@ export default function TenantsPage() {
               />
             </div>
             <div>
-              <label className="block text-slate-600 mb-1">Jour d&apos;échéance *</label>
+              <label className="block text-slate-600 mb-1">
+                Jour d&apos;échéance *
+              </label>
               <select
                 name="dueDate"
                 value={formData.dueDate}
@@ -445,7 +638,9 @@ export default function TenantsPage() {
           </div>
 
           <div>
-            <label className="block text-slate-600 mb-1">Adresse du bien *</label>
+            <label className="block text-slate-600 mb-1">
+              Adresse du bien *
+            </label>
             <textarea
               name="propertyAddress"
               required

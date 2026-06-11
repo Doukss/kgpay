@@ -198,7 +198,7 @@ export default function TenantPaymentPage({ params }: PayPageProps) {
                   className="w-full flex items-center justify-between p-4 border border-slate-200 hover:border-wave/50 hover:bg-sky-50/10 rounded-2xl transition-all group shadow-sm text-left"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-[#00a3ff] flex items-center justify-center font-black text-white text-base shadow-sm">
+                    <div className="h-10 w-10 rounded-xl bg-wave flex items-center justify-center font-black text-white text-base shadow-sm">
                       W
                     </div>
                     <div>
@@ -215,7 +215,7 @@ export default function TenantPaymentPage({ params }: PayPageProps) {
                   className="w-full flex items-center justify-between p-4 border border-slate-200 hover:border-orange-money/50 hover:bg-orange-50/10 rounded-2xl transition-all group shadow-sm text-left"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-[#ff6600] flex items-center justify-center font-black text-white text-xs shadow-sm">
+                    <div className="h-10 w-10 rounded-xl bg-orange-money flex items-center justify-center font-black text-white text-xs shadow-sm">
                       OM
                     </div>
                     <div>
@@ -232,7 +232,7 @@ export default function TenantPaymentPage({ params }: PayPageProps) {
                   className="w-full flex items-center justify-between p-4 border border-slate-200 hover:border-free-money/50 hover:bg-rose-50/10 rounded-2xl transition-all group shadow-sm text-left"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-[#e1000f] flex items-center justify-center font-black text-white text-xs shadow-sm">
+                    <div className="h-10 w-10 rounded-xl bg-free-money flex items-center justify-center font-black text-white text-xs shadow-sm">
                       FM
                     </div>
                     <div>
@@ -270,7 +270,7 @@ export default function TenantPaymentPage({ params }: PayPageProps) {
                       W
                     </div>
                     <h3 className="text-base font-bold text-slate-900">Paiement Sécurisé Wave</h3>
-                    <p className="text-[10px] text-slate-400 font-medium max-w-[250px] mx-auto leading-relaxed">
+                    <p className="text-[10px] text-slate-400 font-medium max-w-62.5 mx-auto leading-relaxed">
                       Scannez le QR Code ci-dessous avec l&apos;application Wave de votre smartphone ou cliquez sur le bouton.
                     </p>
                   </div>
@@ -315,7 +315,7 @@ export default function TenantPaymentPage({ params }: PayPageProps) {
                       OM
                     </div>
                     <h3 className="text-base font-bold text-slate-900">Paiement Orange Money</h3>
-                    <p className="text-[10px] text-slate-400 font-medium max-w-[250px] mx-auto leading-relaxed">
+                    <p className="text-[10px] text-slate-400 font-medium max-w-62.5 mx-auto leading-relaxed">
                       Saisissez votre numéro Orange Money et le code OTP temporaire de confirmation.
                     </p>
                   </div>
@@ -382,7 +382,7 @@ export default function TenantPaymentPage({ params }: PayPageProps) {
                       FM
                     </div>
                     <h3 className="text-base font-bold text-slate-900">Paiement Free Money</h3>
-                    <p className="text-[10px] text-slate-400 font-medium max-w-[250px] mx-auto leading-relaxed">
+                    <p className="text-[10px] text-slate-400 font-medium max-w-62.5 mx-auto leading-relaxed">
                       Saisissez votre numéro Free pour initier la demande de paiement mobile.
                     </p>
                   </div>
@@ -434,7 +434,7 @@ export default function TenantPaymentPage({ params }: PayPageProps) {
               <Loader2 className="h-10 w-10 text-brand-primary animate-spin" />
               <div>
                 <h3 className="font-bold text-slate-900 text-sm">Règlement en cours</h3>
-                <p className="text-[10px] text-slate-400 font-medium mt-1 leading-normal max-w-[200px] mx-auto">
+                <p className="text-[10px] text-slate-400 font-medium mt-1 leading-normal max-w-50 mx-auto">
                   Veuillez ne pas quitter cette page ni recharger l&apos;onglet.
                 </p>
               </div>
@@ -450,7 +450,7 @@ export default function TenantPaymentPage({ params }: PayPageProps) {
               <div className="text-center space-y-2 no-print">
                 <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto animate-bounce" />
                 <h3 className="text-base font-bold text-slate-900">Paiement validé avec succès !</h3>
-                <p className="text-[10px] text-slate-400 font-medium max-w-[250px] mx-auto leading-relaxed">
+                <p className="text-[10px] text-slate-400 font-medium max-w-62.5 mx-auto leading-relaxed">
                   Votre loyer a été payé et validé par l&apos;opérateur. Votre propriétaire a été notifié.
                 </p>
               </div>
@@ -458,7 +458,7 @@ export default function TenantPaymentPage({ params }: PayPageProps) {
               {/* Receipt Document */}
               <div className="border border-slate-200/80 rounded-2xl p-5 bg-white space-y-4 shadow-sm relative overflow-hidden print-card">
                 {/* Diagonal paid watermark (No print) */}
-                <div className="absolute top-4 right-[-24px] rotate-45 bg-emerald-500 text-white font-black text-[9px] px-8 py-1 uppercase tracking-wider shadow-sm no-print">
+                <div className="absolute top-4 -right-6 rotate-45 bg-emerald-500 text-white font-black text-[9px] px-8 py-1 uppercase tracking-wider shadow-sm no-print">
                   PAYÉ
                 </div>
 
@@ -485,7 +485,7 @@ export default function TenantPaymentPage({ params }: PayPageProps) {
 
                   <div>
                     <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider leading-none">Bien Immobilier</span>
-                    <span className="text-slate-900 font-bold mt-1 block max-w-[150px] leading-relaxed">{tenant.propertyAddress}</span>
+                    <span className="text-slate-900 font-bold mt-1 block max-w-37.5 leading-relaxed">{tenant.propertyAddress}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[9px] font-bold uppercase tracking-wider leading-none">Moyen de règlement</span>

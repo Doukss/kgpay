@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useKeurGui, Tenant } from "@/context/KeurGuiContext";
 import Modal from "@/components/ui/Modal";
 import {
@@ -25,6 +25,10 @@ export default function RecoveryPage() {
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [simulatedMessage, setSimulatedMessage] = useState("");
   const [copied, setCopied] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+  const paginationButtonClass = "rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50";
 
   const handleTriggerReminder = (tenant: Tenant, type: "sms" | "whatsapp") => {
     const message = sendReminder(tenant.id, type);
@@ -49,6 +53,23 @@ export default function RecoveryPage() {
     if (!activeTenant) return "#";
     return `/pay/${activeTenant.id}`;
   };
+
+  const filteredTenants = tenants.filter((tenant) => {
+    return statusFilter === "all" || tenant.status === statusFilter;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredTenants.length / ITEMS_PER_PAGE));
+  const paginatedTenants = filteredTenants.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, tenants.length]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   // Render status badge
   const renderStatus = (status: Tenant["status"]) => {
@@ -99,6 +120,26 @@ export default function RecoveryPage() {
         </div>
       </div>
 
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 text-xs shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-slate-500 font-semibold">Filtrer par statut</p>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="mt-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus:border-brand-primary focus:outline-none"
+          >
+            <option value="all">Tous les locataires</option>
+            <option value="paid">Payés</option>
+            <option value="unpaid">Non payés</option>
+            <option value="reminded">Relancés</option>
+            <option value="overdue">En retard</option>
+          </select>
+        </div>
+        <div className="text-[11px] text-slate-500">
+          {filteredTenants.length} locataire{filteredTenants.length > 1 ? "s" : ""} affiché{filteredTenants.length > 1 ? "s" : ""}
+        </div>
+      </div>
+
       {/* Recovery list table */}
       <div className="rounded-2xl border border-slate-100 bg-white overflow-hidden shadow-sm">
         <table className="w-full border-collapse text-left text-xs font-medium text-slate-600">
@@ -112,78 +153,115 @@ export default function RecoveryPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {tenants.map((tenant) => (
-              <tr key={tenant.id} className="hover:bg-slate-50/50 transition-colors">
-                {/* Name and property */}
-                <td className="px-6 py-4">
-                  <div className="font-bold text-slate-900 text-sm">{tenant.name}</div>
-                  <div className="text-[10px] text-slate-400 mt-1">{tenant.propertyAddress}</div>
-                </td>
-
-                {/* Amount and due date */}
-                <td className="px-6 py-4">
-                  <span className="font-bold text-slate-900 text-sm">
-                    {tenant.rentAmount.toLocaleString("fr-FR")} FCFA
-                  </span>
-                  <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-semibold">
-                    <Calendar className="h-3 w-3" /> Le {tenant.dueDate} du mois
-                  </div>
-                </td>
-
-                {/* Last reminder sent date */}
-                <td className="px-6 py-4 text-slate-500 font-semibold">
-                  {tenant.lastReminderSent ? (
-                    <div>
-                      <span>{new Date(tenant.lastReminderSent).toLocaleDateString("fr-FR")}</span>
-                      <span className="block text-[10px] text-slate-400 font-medium">
-                        à {new Date(tenant.lastReminderSent).toLocaleTimeString("fr-FR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-slate-300 italic">Jamais relancé</span>
-                  )}
-                </td>
-
-                {/* Status */}
-                <td className="px-6 py-4">{renderStatus(tenant.status)}</td>
-
-                {/* Automation actions */}
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-center gap-2">
-                    {tenant.status === "paid" ? (
-                      <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 flex items-center gap-1">
-                        <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
-                        <span>Loyers Recouvrés</span>
-                      </span>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleTriggerReminder(tenant, "whatsapp")}
-                          className="rounded-xl border border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50 px-3.5 py-2 text-emerald-700 font-bold hover:text-emerald-800 transition-colors flex items-center gap-1.5"
-                          title="Simuler Rappel WhatsApp"
-                        >
-                          <MessageCircle className="h-4 w-4 text-emerald-600" />
-                          <span>WhatsApp</span>
-                        </button>
-                        <button
-                          onClick={() => handleTriggerReminder(tenant, "sms")}
-                          className="rounded-xl border border-sky-200 bg-sky-50/30 hover:bg-sky-50 px-3.5 py-2 text-sky-700 font-bold hover:text-sky-800 transition-colors flex items-center gap-1.5"
-                          title="Simuler Rappel SMS"
-                        >
-                          <MessageSquare className="h-4 w-4 text-sky-600" />
-                          <span>SMS</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
+            {paginatedTenants.length === 0 ? (
+              <tr>
+                <td className="px-6 py-10 text-center text-slate-400" colSpan={5}>
+                  Aucun locataire ne correspond à ce statut.
                 </td>
               </tr>
-            ))}
+            ) : (
+              paginatedTenants.map((tenant) => (
+                <tr key={tenant.id} className="hover:bg-slate-50/50 transition-colors">
+                  {/* Name and property */}
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-slate-900 text-sm">{tenant.name}</div>
+                    <div className="text-[10px] text-slate-400 mt-1">{tenant.propertyAddress}</div>
+                  </td>
+
+                  {/* Amount and due date */}
+                  <td className="px-6 py-4">
+                    <span className="font-bold text-slate-900 text-sm">
+                      {tenant.rentAmount.toLocaleString("fr-FR")} FCFA
+                    </span>
+                    <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1 font-semibold">
+                      <Calendar className="h-3 w-3" /> Le {tenant.dueDate} du mois
+                    </div>
+                  </td>
+
+                  {/* Last reminder sent date */}
+                  <td className="px-6 py-4 text-slate-500 font-semibold">
+                    {tenant.lastReminderSent ? (
+                      <div>
+                        <span>{new Date(tenant.lastReminderSent).toLocaleDateString("fr-FR")}</span>
+                        <span className="block text-[10px] text-slate-400 font-medium">
+                          à {new Date(tenant.lastReminderSent).toLocaleTimeString("fr-FR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-300 italic">Jamais relancé</span>
+                    )}
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-6 py-4">{renderStatus(tenant.status)}</td>
+
+                  {/* Automation actions */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-2">
+                      {tenant.status === "paid" ? (
+                        <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 flex items-center gap-1">
+                          <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>Loyers Recouvrés</span>
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleTriggerReminder(tenant, "whatsapp")}
+                            className="rounded-xl border border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50 px-3.5 py-2 text-emerald-700 font-bold hover:text-emerald-800 transition-colors flex items-center gap-1.5"
+                            title="Simuler Rappel WhatsApp"
+                          >
+                            <MessageCircle className="h-4 w-4 text-emerald-600" />
+                            <span>WhatsApp</span>
+                          </button>
+                          <button
+                            onClick={() => handleTriggerReminder(tenant, "sms")}
+                            className="rounded-xl border border-sky-200 bg-sky-50/30 hover:bg-sky-50 px-3.5 py-2 text-sky-700 font-bold hover:text-sky-800 transition-colors flex items-center gap-1.5"
+                            title="Simuler Rappel SMS"
+                          >
+                            <MessageSquare className="h-4 w-4 text-sky-600" />
+                            <span>SMS</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
+
+        {tenants.length > 0 && (
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4 sm:flex-row">
+            <div className="text-[11px] text-slate-500">
+              Affichage de {Math.min(tenants.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)} à {Math.min(tenants.length, currentPage * ITEMS_PER_PAGE)} sur {tenants.length} locataire{tenants.length > 1 ? "s" : ""}.
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+                className={paginationButtonClass}
+              >
+                Précédent
+              </button>
+              <span className="text-[11px] text-slate-500">
+                Page {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={currentPage === totalPages}
+                className={paginationButtonClass}
+              >
+                Suivant
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Phone Simulator Modal */}
@@ -194,7 +272,7 @@ export default function RecoveryPage() {
       >
         <div className="flex flex-col items-center gap-6 py-2">
           {/* Smartphone mockup */}
-          <div className="relative mx-auto h-[480px] w-[260px] rounded-[36px] bg-slate-950 p-3 shadow-2xl border-4 border-slate-800 flex flex-col">
+          <div className="relative mx-auto h-120 w-65 rounded-[36px] bg-slate-950 p-3 shadow-2xl border-4 border-slate-800 flex flex-col">
             {/* Notch */}
             <div className="absolute top-4 left-1/2 -translate-x-1/2 h-4 w-24 rounded-full bg-slate-900 z-30 flex items-center justify-center">
               <span className="h-1.5 w-1.5 rounded-full bg-slate-800" />
@@ -222,7 +300,7 @@ export default function RecoveryPage() {
               )}
 
               {/* Chat bubbles area */}
-              <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-[#E5DDD5] bg-[radial-gradient(#d3c8bb_1px,transparent_1px)] bg-[size:10px_10px]">
+              <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-[#E5DDD5] bg-[radial-gradient(#d3c8bb_1px,transparent_1px)] bg-size-[10px_10px]">
                 {/* Simulated timestamp */}
                 <div className="mx-auto text-[7px] text-slate-500 font-bold bg-white/70 px-2 py-0.5 rounded-md w-max uppercase">
                   Aujourd&apos;hui
