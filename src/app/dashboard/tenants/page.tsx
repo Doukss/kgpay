@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 export default function TenantsPage() {
-  const { tenants, addTenant, updateTenant, deleteTenant } = useKeurGui();
+  const { tenants, addTenant, updateTenant, deleteTenant, auth, signOut } = useKeurGui();
 
   // Search and Filter States
   const [searchTerm, setSearchTerm] = useState("");
@@ -180,6 +180,25 @@ export default function TenantsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Agency Header / Auth */}
+      <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100">
+        {auth?.agency ? (
+          <div className="text-sm">
+            <div className="font-bold">Agence : {auth.agency.name}</div>
+            <div className="text-xs text-slate-500">Responsable: {auth.agency.ownerName}</div>
+          </div>
+        ) : (
+          <div className="text-sm text-slate-600">
+            Aucune agence connectée. <a href="/agencies/signup" className="text-brand-primary font-semibold">Créer une agence</a>
+          </div>
+        )}
+
+        {auth?.agency && (
+          <div>
+            <button onClick={signOut} className="text-xs text-rose-600 underline">Se déconnecter</button>
+          </div>
+        )}
+      </div>
       {/* Controls & Search Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
         {/* Search */}

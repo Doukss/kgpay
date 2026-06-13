@@ -24,6 +24,19 @@ export interface Tenant {
   payments: Payment[];
 }
 
+export interface Agency {
+  id: string;
+  name: string;
+  ownerName: string;
+  email: string;
+  phone?: string;
+}
+
+interface AuthState {
+  agency?: Agency | null;
+  token?: string | null;
+}
+
 export interface ReminderTemplates {
   sms: string;
   whatsapp: string;
@@ -49,6 +62,7 @@ interface KeurGuiContextType {
   tenants: Tenant[];
   settings: Settings;
   toasts: Toast[];
+  auth: AuthState;
   addTenant: (tenant: Omit<Tenant, "id" | "status" | "payments">) => void;
   updateTenant: (id: string, tenant: Partial<Tenant>) => void;
   deleteTenant: (id: string) => void;
@@ -60,6 +74,17 @@ interface KeurGuiContextType {
     reference: string
   ) => void;
   updateSettings: (settings: Settings) => void;
+  signupAgency: (payload: {
+    name: string;
+    ownerName: string;
+    email: string;
+    phone?: string;
+    defaultTenantName?: string;
+  }) => Promise<{ agency: Agency; tenantId: string; token?: string } | null>;
+  signOut: () => void;
+  getAgencies: () => Agency[];
+  switchAgency: (agencyId: string) => boolean;
+  deleteAgency: (agencyId: string) => void;
   showToast: (message: string, type: "success" | "info" | "error") => void;
   removeToast: (id: string) => void;
   resetData: () => void;
@@ -140,16 +165,45 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [auth, setAuth] = useState<AuthState>({ agency: null, token: null });
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Load from localStorage on client side
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const storedTenants = localStorage.getItem("keurgui_tenants");
       const storedSettings = localStorage.getItem("keurgui_settings");
+      const storedAuth = localStorage.getItem("keurgui_current_agency");
 
-      if (storedTenants) {
-        setTenants(JSON.parse(storedTenants));
+      if (storedAuth) {
+        try {
+          const parsed = JSON.parse(storedAuth) as AuthState;
+          setAuth(parsed);
+        } catch (e) {
+          setAuth({ agency: null, token: null });
+        }
+      }
+
+      // Load tenants namespaced by agency if present
+      if (storedAuth) {
+        try {
+          const parsed = JSON.parse(storedAuth) as AuthState;
+          const agencyId = parsed?.agency?.id;
+          if (agencyId) {
+            const key = `keurgui_tenants_${agencyId}`;
+            const storedTenants = localStorage.getItem(key);
+            if (storedTenants) {
+              setTenants(JSON.parse(storedTenants));
+            } else {
+              setTenants(DEFAULT_TENANTS);
+              localStorage.setItem(key, JSON.stringify(DEFAULT_TENANTS));
+            }
+          } else {
+            setTenants(DEFAULT_TENANTS);
+            localStorage.setItem("keurgui_tenants", JSON.stringify(DEFAULT_TENANTS));
+          }
+        } catch (e) {
+          setTenants(DEFAULT_TENANTS);
+        }
       } else {
         setTenants(DEFAULT_TENANTS);
         localStorage.setItem("keurgui_tenants", JSON.stringify(DEFAULT_TENANTS));
@@ -168,7 +222,13 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
   // Save changes to localStorage
   useEffect(() => {
     if (isInitialized && typeof window !== "undefined") {
-      localStorage.setItem("keurgui_tenants", JSON.stringify(tenants));
+      // Persist tenants into namespaced key when agency is set
+      const agencyId = auth?.agency?.id;
+      if (agencyId) {
+        localStorage.setItem(`keurgui_tenants_${agencyId}`, JSON.stringify(tenants));
+      } else {
+        localStorage.setItem("keurgui_tenants", JSON.stringify(tenants));
+      }
     }
   }, [tenants, isInitialized]);
 
@@ -298,6 +358,169 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
     showToast("Paramètres sauvegardés avec succès !", "success");
   };
 
+  const signOut = () => {
+    setAuth({ agency: null, token: null });
+    localStorage.removeItem("keurgui_current_agency");
+    // Reset to default tenant list when signing out
+    setTenants(DEFAULT_TENANTS);
+    showToast("Déconnexion réussie.", "info");
+  };
+
+  const signupAgency = async (payload: {
+    name: string;
+    ownerName: string;
+    email: string;
+    phone?: string;
+    defaultTenantName?: string;
+  }) => {
+    // Try to call backend API if present, otherwise fallback to local creation
+    try {
+      const res = await fetch("/api/agencies/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const agency: Agency = data.agency;
+        const token: string | undefined = data.token;
+        const tenantId = data.tenantId || `${payload.defaultTenantName || "default"}-${Date.now()}`;
+        const authState: AuthState = { agency, token };
+        setAuth(authState);
+        localStorage.setItem("keurgui_current_agency", JSON.stringify(authState));
+        // Initialize empty tenants storage for this agency if not present
+        const key = `keurgui_tenants_${agency.id}`;
+        if (!localStorage.getItem(key)) {
+          const initial = [
+            {
+              id: tenantId,
+              name: payload.defaultTenantName || `${agency.name} - Tenant`,
+              phone: payload.phone || "",
+              email: payload.email,
+              rentAmount: 0,
+              dueDate: 5,
+              propertyAddress: "",
+              status: "unpaid",
+              payments: [],
+            },
+          ];
+          localStorage.setItem(key, JSON.stringify(initial));
+          setTenants(initial as Tenant[]);
+        }
+
+        showToast("Agence créée et connectée avec succès.", "success");
+        return { agency, tenantId, token };
+      }
+    } catch (e) {
+      // ignore, fallback to local
+    }
+
+    // Local fallback behavior
+    const id = payload.name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "") || `agency-${Date.now()}`;
+
+    const agency: Agency = {
+      id,
+      name: payload.name,
+      ownerName: payload.ownerName,
+      email: payload.email,
+      phone: payload.phone,
+    };
+
+    const tenantId = `${(payload.defaultTenantName || "default").toLowerCase().replace(/[^a-z0-9]+/g, "-") || "tenant"}-${Date.now()}`;
+
+    const authState: AuthState = { agency, token: `local-${Date.now()}` };
+    setAuth(authState);
+    localStorage.setItem("keurgui_current_agency", JSON.stringify(authState));
+
+    const key = `keurgui_tenants_${agency.id}`;
+    const initial = [
+      {
+        id: tenantId,
+        name: payload.defaultTenantName || `${agency.name} - Tenant`,
+        phone: payload.phone || "",
+        email: payload.email,
+        rentAmount: 0,
+        dueDate: 5,
+        propertyAddress: "",
+        status: "unpaid",
+        payments: [],
+      },
+    ];
+    localStorage.setItem(key, JSON.stringify(initial));
+    setTenants(initial as Tenant[]);
+
+    // Persist agency in agencies list for simple discovery
+    try {
+      const listRaw = localStorage.getItem("keurgui_agencies");
+      const list = listRaw ? JSON.parse(listRaw) : [];
+      list.push(agency);
+      localStorage.setItem("keurgui_agencies", JSON.stringify(list));
+    } catch (e) {
+      // ignore
+    }
+
+    showToast("Agence créée localement et connectée.", "success");
+    return { agency, tenantId, token: authState.token };
+  };
+
+  const getAgencies = (): Agency[] => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem("keurgui_agencies");
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const switchAgency = (agencyId: string): boolean => {
+    if (typeof window === "undefined") return false;
+    const agencies = getAgencies();
+    const agency = agencies.find((a) => a.id === agencyId);
+    if (!agency) return false;
+    const authState: AuthState = { agency, token: `local-${Date.now()}` };
+    setAuth(authState);
+    localStorage.setItem("keurgui_current_agency", JSON.stringify(authState));
+
+    const key = `keurgui_tenants_${agency.id}`;
+    const storedTenants = localStorage.getItem(key);
+    if (storedTenants) {
+      try {
+        setTenants(JSON.parse(storedTenants));
+      } catch (e) {
+        setTenants(DEFAULT_TENANTS);
+      }
+    } else {
+      setTenants(DEFAULT_TENANTS);
+      localStorage.setItem(key, JSON.stringify(DEFAULT_TENANTS));
+    }
+
+    showToast("Connecté en tant que " + agency.name, "success");
+    return true;
+  };
+
+  const deleteAgency = (agencyId: string) => {
+    if (typeof window === "undefined") return;
+    try {
+      const listRaw = localStorage.getItem("keurgui_agencies");
+      const list = listRaw ? JSON.parse(listRaw) : [];
+      const newList = list.filter((a: Agency) => a.id !== agencyId);
+      localStorage.setItem("keurgui_agencies", JSON.stringify(newList));
+      localStorage.removeItem(`keurgui_tenants_${agencyId}`);
+      if (auth?.agency?.id === agencyId) {
+        signOut();
+      }
+      showToast("Agence supprimée.", "info");
+    } catch (e) {
+      showToast("Erreur lors de la suppression.", "error");
+    }
+  };
+
   const resetData = () => {
     setTenants(DEFAULT_TENANTS);
     setSettings(DEFAULT_SETTINGS);
@@ -313,6 +536,7 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
       value={{
         tenants,
         settings,
+        auth,
         toasts,
         addTenant,
         updateTenant,
@@ -320,6 +544,11 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
         sendReminder,
         processPayment,
         updateSettings,
+        signupAgency,
+        signOut,
+        getAgencies,
+        switchAgency,
+        deleteAgency,
         removeToast,
         showToast,
         resetData,
