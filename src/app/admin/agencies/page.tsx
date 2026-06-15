@@ -10,28 +10,38 @@ export default function AdminAgenciesPage() {
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const router = useRouter();
 
-  const refresh = () => setAgencies(getAgencies());
-
   useEffect(() => {
-    refresh();
-  }, []);
+    setAgencies(getAgencies());
+  }, [getAgencies]);
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Gestion des agences</h1>
-        <a href="/agencies/signup" className="text-sm text-brand-primary font-semibold">Créer une agence</a>
+        <a
+          href="/agencies/signup"
+          className="text-sm text-brand-primary font-semibold"
+        >
+          Créer une agence
+        </a>
       </div>
 
       {agencies.length === 0 ? (
-        <div className="rounded-xl border border-slate-100 p-6 text-slate-600">Aucune agence enregistrée.</div>
+        <div className="rounded-xl border border-slate-100 p-6 text-slate-600">
+          Aucune agence enregistrée.
+        </div>
       ) : (
         <div className="grid gap-4">
           {agencies.map((a) => (
-            <div key={a.id} className="flex items-center justify-between rounded-xl border p-4">
+            <div
+              key={a.id}
+              className="flex items-center justify-between rounded-xl border p-4"
+            >
               <div>
                 <div className="font-bold">{a.name}</div>
-                <div className="text-sm text-slate-500">Responsable: {a.ownerName} • {a.email}</div>
+                <div className="text-sm text-slate-500">
+                  Responsable: {a.ownerName} • {a.email}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
@@ -47,9 +57,14 @@ export default function AdminAgenciesPage() {
 
                 <button
                   onClick={() => {
-                    if (!confirm(`Supprimer l'agence ${a.name} ? Cette action est irréversible.`)) return;
+                    if (
+                      !confirm(
+                        `Supprimer l'agence ${a.name} ? Cette action est irréversible.`,
+                      )
+                    )
+                      return;
                     deleteAgency(a.id);
-                    refresh();
+                    setAgencies(getAgencies());
                   }}
                   className="rounded-lg bg-rose-50 px-3 py-2 text-sm border text-rose-600"
                 >

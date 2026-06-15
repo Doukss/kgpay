@@ -19,14 +19,20 @@ export default function AgencySignupPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const result = await signupAgency({ name, ownerName, email, phone, defaultTenantName });
+      const result = await signupAgency({
+        name,
+        ownerName,
+        email,
+        phone,
+        defaultTenantName,
+      });
       if (result) {
         showToast("Inscription réussie — vous êtes connecté.", "success");
         router.push("/dashboard");
       } else {
         showToast("Impossible de s'inscrire pour le moment.", "error");
       }
-    } catch (err) {
+    } catch {
       showToast("Erreur lors de l'inscription.", "error");
     } finally {
       setLoading(false);
@@ -38,7 +44,7 @@ export default function AgencySignupPage() {
       <h1 className="text-2xl font-semibold mb-4">Créer votre agence</h1>
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium">Nom de l'agence</label>
+          <label className="block text-sm font-medium">{"Nom de l'agence"}</label>
           <input
             className="w-full border rounded px-3 py-2"
             value={name}
@@ -48,7 +54,9 @@ export default function AgencySignupPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Nom du responsable</label>
+          <label className="block text-sm font-medium">
+            Nom du responsable
+          </label>
           <input
             className="w-full border rounded px-3 py-2"
             value={ownerName}
@@ -69,7 +77,9 @@ export default function AgencySignupPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Téléphone (optionnel)</label>
+          <label className="block text-sm font-medium">
+            Téléphone (optionnel)
+          </label>
           <input
             className="w-full border rounded px-3 py-2"
             value={phone}
@@ -78,7 +88,9 @@ export default function AgencySignupPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Nom du premier tenant (optionnel)</label>
+          <label className="block text-sm font-medium">
+            Nom du premier tenant (optionnel)
+          </label>
           <input
             className="w-full border rounded px-3 py-2"
             value={defaultTenantName}

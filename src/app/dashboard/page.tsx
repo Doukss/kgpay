@@ -83,6 +83,18 @@ export default function DashboardOverview() {
             >
               Gérer les locataires
             </Link>
+            <Link
+              href="/admin/agencies"
+              className="rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-300 transition-colors"
+            >
+              Gérer les agences
+            </Link>
+            <Link
+              href="/agencies"
+              className="rounded-xl border border-slate-700 bg-transparent hover:bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-300 transition-colors"
+            >
+              Espace agences
+            </Link>
           </div>
         </div>
       </div>

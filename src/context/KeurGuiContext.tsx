@@ -71,7 +71,7 @@ interface KeurGuiContextType {
     tenantId: string,
     amount: number,
     method: "wave" | "orange_money" | "free_money",
-    reference: string
+    reference: string,
   ) => void;
   updateSettings: (settings: Settings) => void;
   signupAgency: (payload: {
@@ -80,7 +80,7 @@ interface KeurGuiContextType {
     email: string;
     phone?: string;
     defaultTenantName?: string;
-  }) => Promise<{ agency: Agency; tenantId: string; token?: string } | null>;
+  }) => Promise<{ agency: Agency; tenantId: string; token?: string | null } | null>;
   signOut: () => void;
   getAgencies: () => Agency[];
   switchAgency: (agencyId: string) => boolean;
@@ -99,7 +99,8 @@ const DEFAULT_SETTINGS: Settings = {
   freeMoneyNumber: "76 543 21 09",
   templates: {
     sms: "Bonjour {name}, votre loyer de {amount} FCFA pour {property} est attendu au plus tard le {due_date} du mois. Veuillez regler en ligne ici : {link}",
-    whatsapp: "Bonjour {name} 👋,\n\nNous espérons que vous allez bien. Ce message concerne le loyer de votre logement *{property}*.\n\nLe montant est de *{amount} FCFA* et est attendu pour le *{due_date}*. Vous pouvez effectuer votre paiement directement via Wave ou Orange Money en cliquant sur ce lien de paiement sécurisé :\n\n🔗 {link}\n\nMerci de votre confiance,\n*{company}*",
+    whatsapp:
+      "Bonjour {name} 👋,\n\nNous espérons que vous allez bien. Ce message concerne le loyer de votre logement *{property}*.\n\nLe montant est de *{amount} FCFA* et est attendu pour le *{due_date}*. Vous pouvez effectuer votre paiement directement via Wave ou Orange Money en cliquant sur ce lien de paiement sécurisé :\n\n🔗 {link}\n\nMerci de votre confiance,\n*{company}*",
   },
 };
 
@@ -178,7 +179,7 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
         try {
           const parsed = JSON.parse(storedAuth) as AuthState;
           setAuth(parsed);
-        } catch (e) {
+        } catch {
           setAuth({ agency: null, token: null });
         }
       }
@@ -199,21 +200,30 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
             }
           } else {
             setTenants(DEFAULT_TENANTS);
-            localStorage.setItem("keurgui_tenants", JSON.stringify(DEFAULT_TENANTS));
+            localStorage.setItem(
+              "keurgui_tenants",
+              JSON.stringify(DEFAULT_TENANTS),
+            );
           }
-        } catch (e) {
+        } catch {
           setTenants(DEFAULT_TENANTS);
         }
       } else {
         setTenants(DEFAULT_TENANTS);
-        localStorage.setItem("keurgui_tenants", JSON.stringify(DEFAULT_TENANTS));
+        localStorage.setItem(
+          "keurgui_tenants",
+          JSON.stringify(DEFAULT_TENANTS),
+        );
       }
 
       if (storedSettings) {
         setSettings(JSON.parse(storedSettings));
       } else {
         setSettings(DEFAULT_SETTINGS);
-        localStorage.setItem("keurgui_settings", JSON.stringify(DEFAULT_SETTINGS));
+        localStorage.setItem(
+          "keurgui_settings",
+          JSON.stringify(DEFAULT_SETTINGS),
+        );
       }
       setIsInitialized(true);
     }
@@ -225,12 +235,15 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
       // Persist tenants into namespaced key when agency is set
       const agencyId = auth?.agency?.id;
       if (agencyId) {
-        localStorage.setItem(`keurgui_tenants_${agencyId}`, JSON.stringify(tenants));
+        localStorage.setItem(
+          `keurgui_tenants_${agencyId}`,
+          JSON.stringify(tenants),
+        );
       } else {
         localStorage.setItem("keurgui_tenants", JSON.stringify(tenants));
       }
     }
-  }, [tenants, isInitialized]);
+  }, [tenants, isInitialized, auth?.agency?.id]);
 
   useEffect(() => {
     if (isInitialized && typeof window !== "undefined") {
@@ -252,7 +265,9 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const addTenant = (tenantData: Omit<Tenant, "id" | "status" | "payments">) => {
+  const addTenant = (
+    tenantData: Omit<Tenant, "id" | "status" | "payments">,
+  ) => {
     const id = tenantData.name
       .toLowerCase()
       .normalize("NFD")
@@ -273,7 +288,9 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
 
   const updateTenant = (id: string, updatedFields: Partial<Tenant>) => {
     setTenants((prev) =>
-      prev.map((tenant) => (tenant.id === id ? { ...tenant, ...updatedFields } : tenant))
+      prev.map((tenant) =>
+        tenant.id === id ? { ...tenant, ...updatedFields } : tenant,
+      ),
     );
     showToast("Locataire mis à jour avec succès", "success");
   };
@@ -290,7 +307,9 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
       prev.map((tenant) => {
         if (tenant.id === id) {
           const rawTemplate =
-            type === "sms" ? settings.templates.sms : settings.templates.whatsapp;
+            type === "sms"
+              ? settings.templates.sms
+              : settings.templates.whatsapp;
           const host =
             typeof window !== "undefined"
               ? window.location.origin
@@ -312,14 +331,14 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
           };
         }
         return tenant;
-      })
+      }),
     );
 
     showToast(
       `Relance ${type.toUpperCase()} générée pour ${
         tenants.find((t) => t.id === id)?.name
       } !`,
-      "success"
+      "success",
     );
     return message;
   };
@@ -328,7 +347,7 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
     tenantId: string,
     amount: number,
     method: "wave" | "orange_money" | "free_money",
-    reference: string
+    reference: string,
   ) => {
     setTenants((prev) =>
       prev.map((tenant) => {
@@ -347,10 +366,13 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
           };
         }
         return tenant;
-      })
+      }),
     );
 
-    showToast(`Paiement de ${amount.toLocaleString("fr-FR")} FCFA enregistré !`, "success");
+    showToast(
+      `Paiement de ${amount.toLocaleString("fr-FR")} FCFA enregistré !`,
+      "success",
+    );
   };
 
   const updateSettings = (newSettings: Settings) => {
@@ -385,10 +407,15 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         const agency: Agency = data.agency;
         const token: string | undefined = data.token;
-        const tenantId = data.tenantId || `${payload.defaultTenantName || "default"}-${Date.now()}`;
+        const tenantId =
+          data.tenantId ||
+          `${payload.defaultTenantName || "default"}-${Date.now()}`;
         const authState: AuthState = { agency, token };
         setAuth(authState);
-        localStorage.setItem("keurgui_current_agency", JSON.stringify(authState));
+        localStorage.setItem(
+          "keurgui_current_agency",
+          JSON.stringify(authState),
+        );
         // Initialize empty tenants storage for this agency if not present
         const key = `keurgui_tenants_${agency.id}`;
         if (!localStorage.getItem(key)) {
@@ -412,16 +439,17 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
         showToast("Agence créée et connectée avec succès.", "success");
         return { agency, tenantId, token };
       }
-    } catch (e) {
+    } catch {
       // ignore, fallback to local
     }
 
     // Local fallback behavior
-    const id = payload.name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)+/g, "") || `agency-${Date.now()}`;
+    const id =
+      payload.name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "") || `agency-${Date.now()}`;
 
     const agency: Agency = {
       id,
@@ -460,7 +488,7 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
       const list = listRaw ? JSON.parse(listRaw) : [];
       list.push(agency);
       localStorage.setItem("keurgui_agencies", JSON.stringify(list));
-    } catch (e) {
+    } catch {
       // ignore
     }
 
@@ -473,7 +501,7 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
     try {
       const raw = localStorage.getItem("keurgui_agencies");
       return raw ? JSON.parse(raw) : [];
-    } catch (e) {
+    } catch {
       return [];
     }
   };
@@ -492,7 +520,7 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
     if (storedTenants) {
       try {
         setTenants(JSON.parse(storedTenants));
-      } catch (e) {
+      } catch {
         setTenants(DEFAULT_TENANTS);
       }
     } else {
@@ -516,7 +544,7 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
         signOut();
       }
       showToast("Agence supprimée.", "info");
-    } catch (e) {
+    } catch {
       showToast("Erreur lors de la suppression.", "error");
     }
   };
@@ -526,7 +554,10 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
     setSettings(DEFAULT_SETTINGS);
     if (typeof window !== "undefined") {
       localStorage.setItem("keurgui_tenants", JSON.stringify(DEFAULT_TENANTS));
-      localStorage.setItem("keurgui_settings", JSON.stringify(DEFAULT_SETTINGS));
+      localStorage.setItem(
+        "keurgui_settings",
+        JSON.stringify(DEFAULT_SETTINGS),
+      );
     }
     showToast("Données réinitialisées aux valeurs de démo !", "info");
   };
@@ -565,8 +596,8 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
               toast.type === "success"
                 ? "bg-emerald-50 border-emerald-100 text-emerald-800"
                 : toast.type === "error"
-                ? "bg-rose-50 border-rose-100 text-rose-800"
-                : "bg-slate-50 border-slate-100 text-slate-800"
+                  ? "bg-rose-50 border-rose-100 text-rose-800"
+                  : "bg-slate-50 border-slate-100 text-slate-800"
             }`}
           >
             {toast.type === "success" && (
@@ -575,7 +606,9 @@ export function KeurGuiProvider({ children }: { children: React.ReactNode }) {
             {toast.type === "error" && (
               <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
             )}
-            {toast.type === "info" && <Info className="h-5 w-5 text-slate-600 shrink-0" />}
+            {toast.type === "info" && (
+              <Info className="h-5 w-5 text-slate-600 shrink-0" />
+            )}
 
             <div className="flex-1">{toast.message}</div>
 

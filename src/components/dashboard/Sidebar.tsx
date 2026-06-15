@@ -27,6 +27,11 @@ export default function Sidebar() {
       icon: Send,
     },
     {
+      name: "Agences",
+      href: "/admin/agencies",
+      icon: Landmark,
+    },
+    {
       name: "Paramètres",
       href: "/dashboard/settings",
       icon: Settings,
