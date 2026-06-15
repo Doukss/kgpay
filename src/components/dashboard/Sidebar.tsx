@@ -3,7 +3,14 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Send, Settings, Landmark, RefreshCw } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Send,
+  Settings,
+  Landmark,
+  RefreshCw,
+} from "lucide-react";
 import { useKeurGui } from "@/context/KeurGuiContext";
 
 export default function Sidebar() {

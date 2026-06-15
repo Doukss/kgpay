@@ -80,7 +80,11 @@ interface KeurGuiContextType {
     email: string;
     phone?: string;
     defaultTenantName?: string;
-  }) => Promise<{ agency: Agency; tenantId: string; token?: string | null } | null>;
+  }) => Promise<{
+    agency: Agency;
+    tenantId: string;
+    token?: string | null;
+  } | null>;
   signOut: () => void;
   getAgencies: () => Agency[];
   switchAgency: (agencyId: string) => boolean;

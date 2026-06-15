@@ -23,7 +23,9 @@ export default function AgenciesPage() {
           >
             <div>
               <p className="text-sm font-semibold">Créer une agence</p>
-              <p className="text-xs text-slate-300">Inscription autonome et espace dédié.</p>
+              <p className="text-xs text-slate-300">
+                Inscription autonome et espace dédié.
+              </p>
             </div>
             <PlusCircle className="h-6 w-6" />
           </Link>
@@ -34,7 +36,9 @@ export default function AgenciesPage() {
           >
             <div>
               <p className="text-sm font-semibold">Connexion agence</p>
-              <p className="text-xs text-slate-500">Sélectionnez votre agence et accédez à votre espace.</p>
+              <p className="text-xs text-slate-500">
+                Sélectionnez votre agence et accédez à votre espace.
+              </p>
             </div>
             <LogIn className="h-6 w-6" />
           </Link>
@@ -42,18 +46,34 @@ export default function AgenciesPage() {
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h2 className="text-lg font-bold text-slate-900 mb-3">Agences enregistrées</h2>
+        <h2 className="text-lg font-bold text-slate-900 mb-3">
+          Agences enregistrées
+        </h2>
         {agencies.length === 0 ? (
-          <p className="text-sm text-slate-500">Aucune agence enregistrée pour le moment.</p>
+          <p className="text-sm text-slate-500">
+            Aucune agence enregistrée pour le moment.
+          </p>
         ) : (
           <ul className="space-y-3">
             {agencies.map((agency) => (
-              <li key={agency.id} className="rounded-2xl border border-slate-100 p-4 flex items-center justify-between gap-3">
+              <li
+                key={agency.id}
+                className="rounded-2xl border border-slate-100 p-4 flex items-center justify-between gap-3"
+              >
                 <div>
-                  <div className="font-semibold text-slate-900">{agency.name}</div>
-                  <div className="text-xs text-slate-500">Responsable : {agency.ownerName}</div>
+                  <div className="font-semibold text-slate-900">
+                    {agency.name}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    Responsable : {agency.ownerName}
+                  </div>
                 </div>
-                <Link href="/login" className="text-sm font-semibold text-brand-primary">Se connecter</Link>
+                <Link
+                  href="/login"
+                  className="text-sm font-semibold text-brand-primary"
+                >
+                  Se connecter
+                </Link>
               </li>
             ))}
           </ul>

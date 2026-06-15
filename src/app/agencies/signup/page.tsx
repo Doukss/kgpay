@@ -44,7 +44,9 @@ export default function AgencySignupPage() {
       <h1 className="text-2xl font-semibold mb-4">Créer votre agence</h1>
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium">{"Nom de l'agence"}</label>
+          <label className="block text-sm font-medium">
+            {"Nom de l'agence"}
+          </label>
           <input
             className="w-full border rounded px-3 py-2"
             value={name}
